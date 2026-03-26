@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: waitlist
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - email: string (required, valid email)
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidWaitlistSignup(data) {
+      return data.keys().hasAll(['name', 'email', 'createdAt']) &&
+        data.keys().hasOnly(['name', 'email', 'createdAt']) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+        isValidEmail(data.email) &&
+        data.createdAt is timestamp;
+    }
+
+    // Waitlist Collection Rules
+    match /waitlist/{signupId} {
+      // Allow anyone to create a waitlist signup (public access for landing page)
+      // but only if the data is valid.
+      allow create: if isValidWaitlistSignup(request.resource.data);
+      
+      // Deny read/update/delete by default (only admin can read)
+      allow read, update, delete: if false;
+    }
+
+    // Admin access (if needed later)
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "entities": {
+    "waitlist": {
+      "title": "Waitlist Signup",
+      "description": "Information about users who signed up for the Lendriva waitlist.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Full name of the user."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email address of the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the user signed up."
+        }
+      },
+      "required": ["name", "email", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/waitlist/{signupId}": {
+      "schema": "waitlist",
+      "description": "Collection of waitlist signups."
+    }
+  }
+}
