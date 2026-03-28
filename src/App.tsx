@@ -63,15 +63,13 @@ class ErrorBoundary extends React.Component<{ children: ReactNode }, { hasError:
             <button 
               onClick={() => {
                 try {
-                  // Using href assignment instead of reload() as it's sometimes more robust in iframes
-                  window.location.href = window.location.href;
+                  // Using reload() is safer in cross-origin iframe environments
+                  window.location.reload();
                 } catch (e) {
                   console.error("Failed to reload page:", e);
-                  // Fallback to reload if href assignment fails
-                  try { window.location.reload(); } catch (e2) {}
                 }
               }}
-              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all"
+              className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20"
             >
               Reload Page
             </button>
@@ -107,10 +105,30 @@ function LandingPage() {
     
     const path = "waitlist";
     try {
+      // 1. Submit to Firestore (existing logic)
       await addDoc(collection(db, path), {
         ...formData,
         createdAt: serverTimestamp()
       });
+
+      // 2. Submit to Formspree
+      try {
+        const formspreeResponse = await fetch("https://formspree.io/f/xreoenzy", {
+          method: "POST",
+          body: JSON.stringify(formData),
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!formspreeResponse.ok) {
+          console.warn("Formspree submission failed, but Firestore succeeded.");
+        }
+      } catch (formspreeErr) {
+        console.error("Formspree error:", formspreeErr);
+      }
+
       setIsSubmitted(true);
       setFormData({ name: "", email: "" });
     } catch (err) {
@@ -415,6 +433,7 @@ function LandingPage() {
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                       <input 
                         type="text" 
+                        name="name"
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -430,6 +449,7 @@ function LandingPage() {
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                       <input 
                         type="email" 
+                        name="email"
                         required
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
